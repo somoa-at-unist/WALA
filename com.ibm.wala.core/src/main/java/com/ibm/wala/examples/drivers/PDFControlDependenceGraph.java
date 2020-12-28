@@ -55,7 +55,7 @@ public class PDFControlDependenceGraph {
    * something like "java_cup.lexer.advance()V"
    */
   public static void main(String[] args) throws IOException {
-
+    System.out.println("Working Directory = " + System.getProperty("user.dir"));
     run(args);
   }
 

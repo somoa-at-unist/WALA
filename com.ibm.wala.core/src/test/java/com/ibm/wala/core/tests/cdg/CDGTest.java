@@ -59,14 +59,14 @@ public class CDGTest {
   @Test
   public void runCDGTestWithJar() throws IOException {
     Path jarFile = FileSystems.getDefault().getPath(System.getProperty("user.dir"),
-        "build", "resources", "test", "JLex.jar");
+        "resources", "test", "JLex.jar");
     run(jarFile.toString(), "JLex.CUtility.ASSERT(Z)V");
   }
 
   @Test
   public void testPatch180() throws IOException {
     Path cp = FileSystems.getDefault().getPath(System.getProperty("user.dir"),
-        "build", "resources", "test", "Time4p", "target", "classes");
+        "resources", "test", "Time4p", "target", "classes");
     runWithClassPath(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;");
   }
 

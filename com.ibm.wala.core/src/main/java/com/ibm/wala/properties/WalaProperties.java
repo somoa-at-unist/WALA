@@ -48,6 +48,10 @@ public final class WalaProperties {
 
   public static final String DROIDEL_ANDROID_JAR = "droidel_android_jar";
 
+  public static final String PDFVIEW_EXE = "pdfview_exe";
+
+  public static final String DOT_EXE = "dot_exe";
+
   /**
    * Determine the classpath noted in wala.properties for J2SE standard libraries
    *
@@ -153,6 +157,8 @@ public final class WalaProperties {
         defprop.setProperty(ECLIPSE_PLUGINS_DIR, "./plugins");
         defprop.setProperty(WALA_REPORT, "./wala_report.txt");
         defprop.setProperty(J2EE_DIR, "./j2ee");
+        defprop.setProperty(PDFVIEW_EXE, "evince");
+        defprop.setProperty(DOT_EXE, "dot");
 
         return defprop;
       }
