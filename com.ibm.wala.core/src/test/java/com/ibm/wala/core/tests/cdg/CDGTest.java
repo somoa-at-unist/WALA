@@ -37,6 +37,7 @@ import com.ibm.wala.util.collections.Pair;
 import com.ibm.wala.util.config.AnalysisScopeReader;
 import com.ibm.wala.util.debug.Assertions;
 import com.ibm.wala.util.graph.Graph;
+import com.ibm.wala.util.graph.traverse.BFSIterator;
 import com.ibm.wala.util.io.CommandLine;
 import com.ibm.wala.util.io.FileProvider;
 import com.ibm.wala.util.io.FileUtil;
@@ -225,7 +226,6 @@ public class CDGTest {
     System.out.println("print cdg");
     System.out.println("graph node num: " + cdg.getNumberOfNodes());
     //System.out.println(cdg.getNode(0).toString());
-    StringBuilder sb = new StringBuilder();
     for (ISSABasicBlock n : cdg) {
       System.out.println(n.getNumber() + " -> " + cdg.getSuccNodeNumbers(n).toString());
       System.out.println(cdg.getPredNodeNumbers(n).toString() + " -> " + n.getNumber());
@@ -234,12 +234,17 @@ public class CDGTest {
 
   /**
    * Use BFS to find shortest distance
-   * @param cdg
-   * @param target
+   * @param cdg control dependency graph
+   * @param target target node
    */
   public static void shortestDistanceToNode(ControlDependenceGraph<ISSABasicBlock> cdg, ISSABasicBlock target){
     System.out.println("Find shortest path to node " + target.toString());
-
+    ReverseBFSIterator<ISSABasicBlock> bfs = new ReverseBFSIterator<ISSABasicBlock>(cdg, target);
+    while(bfs.hasNext()){
+      ISSABasicBlock n = bfs.next();
+      System.out.println(n.getNumber() + " -> " + cdg.getSuccNodeNumbers(n).toString());
+      System.out.println(cdg.getPredNodeNumbers(n).toString() + " -> " + n.getNumber());
+    }
   }
   /**
    * Validate that the command-line arguments obey the expected usage.
