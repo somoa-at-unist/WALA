@@ -67,6 +67,7 @@ public class CDGTest {
   public void testPatch180() throws IOException {
     Path cp = FileSystems.getDefault().getPath(System.getProperty("user.dir"),
         "resources", "test", "Time4p", "target", "classes");
+    System.out.println("path: " + cp.toString());
     runWithClassPath(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;");
   }
 
@@ -160,7 +161,7 @@ public class CDGTest {
       AnalysisScope scope =
           AnalysisScopeReader.makeJavaBinaryAnalysisScope(
               cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
-
+      System.out.println("scope: " + scope.toString());
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
 
       MethodReference mr = StringStuff.makeMethodReference(methodSig);
