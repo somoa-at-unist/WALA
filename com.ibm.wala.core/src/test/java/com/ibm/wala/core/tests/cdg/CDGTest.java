@@ -44,6 +44,7 @@ import com.ibm.wala.util.strings.StringStuff;
 import com.ibm.wala.viz.DotUtil;
 import com.ibm.wala.viz.PDFViewUtil;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -74,6 +75,7 @@ public class CDGTest {
         "resources", "test", "Time4p", "target", "classes");
     System.out.println("path: " + cp.toString());
     runWithClassPath(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;");
+    inFileBasicBlockDistances(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;", 92);
   }
 
   /**
@@ -190,11 +192,6 @@ public class CDGTest {
           new ControlDependenceGraph<>(ir.getControlFlowGraph());
       Iterator<SSAInstruction> IRIter = ir.iterateAllInstructions();
 
-      ArrayList<Integer> result = shortestDistanceToNode(cdg, cdg.getNode(41));
-      for(int i = 0; i < cdg.getNumberOfNodes(); i++){
-        System.out.println(i + " to node 41 distance: " + result.get(i));
-      }
-
       Properties wp = null;
       try {
         wp = WalaProperties.loadProperties();
@@ -225,15 +222,23 @@ public class CDGTest {
     }
   }
 
+  public static ISSABasicBlock getBasicBlockByLine(ControlDependenceGraph<ISSABasicBlock> cdg, int line) {
+    Iterator<ISSABasicBlock> iter = cdg.iterator();
+    while(iter.hasNext()) {
+      ISSABasicBlock n = iter.next();
+      if (n.getFirstInstructionIndex() <= line && line <= n.getLastInstructionIndex()) {
+        return n;
+      }
+    }
+    return null;
+  }
   /**
    * Use BFS to find shortest distance
    * @param cdg control dependency graph
    * @param target target node
    */
-  public static ArrayList<Integer> shortestDistanceToNode(ControlDependenceGraph<ISSABasicBlock> cdg, ISSABasicBlock target){
-    System.out.println("Find shortest path to node " + target.toString());
+  public static ArrayList<Integer> distancesToNode(ControlDependenceGraph<ISSABasicBlock> cdg, ISSABasicBlock target) {
     ArrayList<Integer> result = new ArrayList<>();
-    System.out.println("max: " + cdg.getNumberOfNodes());
     for(int i = 0; i < cdg.getNumberOfNodes(); i++){
       result.add(-1);
     }
@@ -256,6 +261,72 @@ public class CDGTest {
     }
     return result;
   }
+
+  public static void inFileBasicBlockDistances(String cp, String methodSig, int line) throws IOException {
+    try {
+      AnalysisScope scope =
+          AnalysisScopeReader.makeJavaBinaryAnalysisScope(
+              cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      System.out.println("scope: " + scope.toString());
+      ClassHierarchy cha = ClassHierarchyFactory.make(scope);
+
+      MethodReference mr = StringStuff.makeMethodReference(methodSig);
+
+      IMethod m = cha.resolveMethod(mr);
+      if (m == null) {
+        System.err.println("could not resolve " + mr);
+        throw new RuntimeException();
+      }
+      AnalysisOptions options = new AnalysisOptions();
+      options.getSSAOptions().setPiNodePolicy(SSAOptions.getAllBuiltInPiNodes());
+      IAnalysisCacheView cache = new AnalysisCacheImpl(options.getSSAOptions());
+      IR ir = cache.getIR(m, Everywhere.EVERYWHERE);
+
+      if (ir == null) {
+        Assertions.UNREACHABLE("Null IR for " + m);
+      }
+      ControlDependenceGraph<ISSABasicBlock> cdg =
+          new ControlDependenceGraph<>(ir.getControlFlowGraph());
+
+      ISSABasicBlock target = getBasicBlockByLine(cdg, line);
+      ArrayList<Integer> result = distancesToNode(cdg, target);
+
+      Properties wp = null;
+      try {
+        wp = WalaProperties.loadProperties();
+        wp.putAll(WalaExamplesProperties.loadProperties());
+      } catch (WalaException e) {
+        e.printStackTrace();
+        Assertions.UNREACHABLE();
+      }
+      String csvFile =
+          wp.getProperty(WalaProperties.OUTPUT_DIR)
+              + File.separatorChar
+              + "output.csv";
+      FileWriter fw = new FileWriter(csvFile);
+      fw.append("File, Line, dist\n");
+      for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
+        if(result.get(i) < 0) {
+          System.out.println(i + " to node " + target.getNumber() + " distance: UNREACHABLE");
+        } else {
+          System.out.println(
+              i + " to node " + target.getNumber() + " distance: " + result.get(i));
+        }
+        ISSABasicBlock n = cdg.getNode(i);
+        try {
+          for(int j = n.getFirstInstructionIndex(); j <= n.getLastInstructionIndex(); j++) {
+            fw.append(cp + ", " + j + ", " + result.get(i) + "\n");
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+      fw.close();
+    } catch (WalaException e) {
+      e.printStackTrace();
+    }
+  }
+
   /**
    * Validate that the command-line arguments obey the expected usage.
    *
