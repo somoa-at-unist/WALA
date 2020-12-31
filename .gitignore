@@ -8,3 +8,9 @@
 /.gradle/
 /.vscode/settings.json
 build/
+.idea/codeStyles/Project.xml
+.idea/codeStyles/codeStyleConfig.xml
+out
+com.ibm.wala.core/out/*
+com.ibm.wala.core/launchers/*
+
