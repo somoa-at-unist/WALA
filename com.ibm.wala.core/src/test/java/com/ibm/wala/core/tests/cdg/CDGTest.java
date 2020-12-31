@@ -25,12 +25,15 @@ import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.properties.WalaProperties;
 import com.ibm.wala.ssa.IR;
 import com.ibm.wala.ssa.ISSABasicBlock;
+import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAOptions;
 import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.util.CancelException;
 import com.ibm.wala.util.WalaException;
 import com.ibm.wala.util.collections.HashSetFactory;
+import com.ibm.wala.util.collections.Iterator2Iterable;
+import com.ibm.wala.util.collections.Pair;
 import com.ibm.wala.util.config.AnalysisScopeReader;
 import com.ibm.wala.util.debug.Assertions;
 import com.ibm.wala.util.graph.Graph;
@@ -41,10 +44,13 @@ import com.ibm.wala.util.strings.StringStuff;
 import com.ibm.wala.viz.DotUtil;
 import com.ibm.wala.viz.PDFViewUtil;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.function.Predicate;
@@ -67,7 +73,9 @@ public class CDGTest {
   public void testPatch180() throws IOException {
     Path cp = FileSystems.getDefault().getPath(System.getProperty("user.dir"),
         "resources", "test", "Time4p", "target", "classes");
+    System.out.println("path: " + cp.toString());
     runWithClassPath(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;");
+    inFileBasicBlockDistances(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;", 92);
   }
 
   /**
@@ -160,7 +168,7 @@ public class CDGTest {
       AnalysisScope scope =
           AnalysisScopeReader.makeJavaBinaryAnalysisScope(
               cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
-
+      System.out.println("scope: " + scope.toString());
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
 
       MethodReference mr = StringStuff.makeMethodReference(methodSig);
@@ -182,6 +190,7 @@ public class CDGTest {
       System.err.println(ir.toString());
       ControlDependenceGraph<ISSABasicBlock> cdg =
           new ControlDependenceGraph<>(ir.getControlFlowGraph());
+      Iterator<SSAInstruction> IRIter = ir.iterateAllInstructions();
 
       Properties wp = null;
       try {
@@ -213,6 +222,110 @@ public class CDGTest {
     }
   }
 
+  public static ISSABasicBlock getBasicBlockByLine(ControlDependenceGraph<ISSABasicBlock> cdg, int line) {
+    Iterator<ISSABasicBlock> iter = cdg.iterator();
+    while(iter.hasNext()) {
+      ISSABasicBlock n = iter.next();
+      if (n.getFirstInstructionIndex() <= line && line <= n.getLastInstructionIndex()) {
+        return n;
+      }
+    }
+    return null;
+  }
+  /**
+   * Use BFS to find shortest distance
+   * @param cdg control dependency graph
+   * @param target target node
+   */
+  public static ArrayList<Integer> distancesToNode(ControlDependenceGraph<ISSABasicBlock> cdg, ISSABasicBlock target) {
+    ArrayList<Integer> result = new ArrayList<>();
+    for(int i = 0; i < cdg.getNumberOfNodes(); i++){
+      result.add(-1);
+    }
+    int distance = 0;
+    ArrayList<ISSABasicBlock> Q = new ArrayList<>();
+    HashSet<ISSABasicBlock> visited = HashSetFactory.make();
+    Q.add(target);
+    int index = 0;
+    result.set(target.getNumber(), distance);
+    while(Q.size() > index) {
+      ISSABasicBlock n = Q.get(index);
+      index++;
+      distance = result.get(n.getNumber()) + 1;
+      for (ISSABasicBlock parent : Iterator2Iterable.make(cdg.getPredNodes(n))) {
+        if (visited.add(parent)) {
+          Q.add(parent);
+          result.set(parent.getNumber(), distance);
+        }
+      }
+    }
+    return result;
+  }
+
+  public static void inFileBasicBlockDistances(String cp, String methodSig, int line) throws IOException {
+    try {
+      AnalysisScope scope =
+          AnalysisScopeReader.makeJavaBinaryAnalysisScope(
+              cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      System.out.println("scope: " + scope.toString());
+      ClassHierarchy cha = ClassHierarchyFactory.make(scope);
+
+      MethodReference mr = StringStuff.makeMethodReference(methodSig);
+
+      IMethod m = cha.resolveMethod(mr);
+      if (m == null) {
+        System.err.println("could not resolve " + mr);
+        throw new RuntimeException();
+      }
+      AnalysisOptions options = new AnalysisOptions();
+      options.getSSAOptions().setPiNodePolicy(SSAOptions.getAllBuiltInPiNodes());
+      IAnalysisCacheView cache = new AnalysisCacheImpl(options.getSSAOptions());
+      IR ir = cache.getIR(m, Everywhere.EVERYWHERE);
+
+      if (ir == null) {
+        Assertions.UNREACHABLE("Null IR for " + m);
+      }
+      ControlDependenceGraph<ISSABasicBlock> cdg =
+          new ControlDependenceGraph<>(ir.getControlFlowGraph());
+
+      ISSABasicBlock target = getBasicBlockByLine(cdg, line);
+      ArrayList<Integer> result = distancesToNode(cdg, target);
+
+      Properties wp = null;
+      try {
+        wp = WalaProperties.loadProperties();
+        wp.putAll(WalaExamplesProperties.loadProperties());
+      } catch (WalaException e) {
+        e.printStackTrace();
+        Assertions.UNREACHABLE();
+      }
+      String csvFile =
+          wp.getProperty(WalaProperties.OUTPUT_DIR)
+              + File.separatorChar
+              + "output.csv";
+      FileWriter fw = new FileWriter(csvFile);
+      fw.append("File, Line, dist\n");
+      for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
+        if(result.get(i) < 0) {
+          System.out.println(i + " to node " + target.getNumber() + " distance: UNREACHABLE");
+        } else {
+          System.out.println(
+              i + " to node " + target.getNumber() + " distance: " + result.get(i));
+        }
+        ISSABasicBlock n = cdg.getNode(i);
+        try {
+          for(int j = n.getFirstInstructionIndex(); j <= n.getLastInstructionIndex(); j++) {
+            fw.append(cp + ", " + j + ", " + result.get(i) + "\n");
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+      fw.close();
+    } catch (WalaException e) {
+      e.printStackTrace();
+    }
+  }
 
   /**
    * Validate that the command-line arguments obey the expected usage.
