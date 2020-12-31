@@ -327,6 +327,16 @@ public class SyntheticMethod implements IMethod {
     return -1;
   }
 
+  @Override
+  public int getMinLineNumber() {
+    return -1;
+  }
+
+  @Override
+  public int getMaxLineNumber() {
+    return -1;
+  }
+
   public boolean isFactoryMethod() {
     return isFactory;
   }

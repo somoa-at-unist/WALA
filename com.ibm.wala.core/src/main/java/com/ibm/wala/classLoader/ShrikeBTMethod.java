@@ -775,6 +775,22 @@ public abstract class ShrikeBTMethod implements IMethod, BytecodeConstants {
     }
   }
 
+  @Override
+  public int getMinLineNumber() {
+    return getLineNumber(0);
+  }
+
+  @Override
+  public int getMaxLineNumber() {
+    try {
+      if (getBCInfo().lineNumberMap == null) return -1;
+      int[] map = getBCInfo().lineNumberMap;
+      return map[map.length - 1];
+    } catch (InvalidClassFileException e) {
+      return -1;
+    }
+  }
+
   /** @return {@link Set}&lt;{@link TypeReference}&gt; */
   public Set<TypeReference> getCaughtExceptionTypes() throws InvalidClassFileException {
 

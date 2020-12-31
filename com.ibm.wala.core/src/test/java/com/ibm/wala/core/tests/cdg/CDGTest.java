@@ -75,6 +75,7 @@ public class CDGTest {
         "resources", "test", "Time4p", "target", "classes");
     System.out.println("path: " + cp.toString());
     runWithClassPath(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;");
+    // runWithClassPathFromFile(cp.toString(), "org/joda/time/Partial.java:459");
     inFileBasicBlockDistances(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;", 92);
   }
 

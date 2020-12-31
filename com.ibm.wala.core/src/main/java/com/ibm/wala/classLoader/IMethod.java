@@ -89,6 +89,11 @@ public interface IMethod extends IMember, ContextItem {
    *     information is not available.
    */
   int getLineNumber(int bcIndex);
+
+  int getMinLineNumber();
+
+  int getMaxLineNumber();
+
   /* BEGIN Custom change: precise positions */
   public interface SourcePosition extends Comparable<SourcePosition> {
     int getFirstLine();
