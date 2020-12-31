@@ -357,6 +357,14 @@ public abstract class AstMethod implements IMethod {
     }
   }
 
+  public int getMinLineNumber() {
+    return -1;
+  }
+
+  public int getMaxLineNumber() {
+    return -1;
+  }
+
   public Position getSourcePosition() {
     return debugInfo.getCodeBodyPosition();
   }
