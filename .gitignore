@@ -8,6 +8,8 @@
 /.gradle/
 /.vscode/settings.json
 build/
+.idea/misc.xml
+.idea/vcs.xml
 .idea/codeStyles/Project.xml
 .idea/codeStyles/codeStyleConfig.xml
 out
