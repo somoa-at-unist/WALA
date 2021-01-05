@@ -1,8 +1,8 @@
 package com.ibm.wala.core.tests.cdg;
 
 import com.ibm.wala.cfg.cdg.ControlDependenceGraph;
+import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
-import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.core.tests.callGraph.CallGraphTestUtil;
 import com.ibm.wala.examples.drivers.PDFCallGraph;
 import com.ibm.wala.examples.drivers.PDFControlDependenceGraph;
@@ -11,50 +11,34 @@ import com.ibm.wala.examples.properties.WalaExamplesProperties;
 import com.ibm.wala.ipa.callgraph.AnalysisCacheImpl;
 import com.ibm.wala.ipa.callgraph.AnalysisOptions;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
-import com.ibm.wala.ipa.callgraph.CGNode;
-import com.ibm.wala.ipa.callgraph.CallGraph;
-import com.ibm.wala.ipa.callgraph.CallGraphStats;
-import com.ibm.wala.ipa.callgraph.Entrypoint;
 import com.ibm.wala.ipa.callgraph.IAnalysisCacheView;
 import com.ibm.wala.ipa.callgraph.impl.Everywhere;
-import com.ibm.wala.ipa.callgraph.impl.Util;
-import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
-import com.ibm.wala.ipa.callgraph.propagation.LocalPointerKey;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.properties.WalaProperties;
-import com.ibm.wala.ssa.IR;
-import com.ibm.wala.ssa.ISSABasicBlock;
-import com.ibm.wala.ssa.SSAInstruction;
-import com.ibm.wala.ssa.SSAOptions;
-import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.shrikeCT.InvalidClassFileException;
+import com.ibm.wala.ssa.*;
 import com.ibm.wala.types.MethodReference;
-import com.ibm.wala.util.CancelException;
 import com.ibm.wala.util.WalaException;
 import com.ibm.wala.util.collections.HashSetFactory;
 import com.ibm.wala.util.collections.Iterator2Iterable;
-import com.ibm.wala.util.collections.Pair;
 import com.ibm.wala.util.config.AnalysisScopeReader;
 import com.ibm.wala.util.debug.Assertions;
-import com.ibm.wala.util.graph.Graph;
-import com.ibm.wala.util.io.CommandLine;
 import com.ibm.wala.util.io.FileProvider;
-import com.ibm.wala.util.io.FileUtil;
 import com.ibm.wala.util.strings.StringStuff;
 import com.ibm.wala.viz.DotUtil;
 import com.ibm.wala.viz.PDFViewUtil;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.function.Predicate;
-import org.junit.Test;
 
 public class CDGTest {
 
@@ -75,8 +59,7 @@ public class CDGTest {
         "resources", "test", "Time4p", "target", "classes");
     System.out.println("path: " + cp.toString());
     runWithClassPath(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;");
-    // runWithClassPathFromFile(cp.toString(), "org/joda/time/Partial.java:459");
-    inFileBasicBlockDistances(cp.toString(), "org.joda.time.Partial.with(Lorg/joda/time/DateTimeFieldType;I)Lorg/joda/time/Partial;", 92);
+    runWithClassPathFromFile(cp.toString(), "org/joda/time/Partial.java:459");
   }
 
   /**
@@ -171,7 +154,6 @@ public class CDGTest {
               cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
       System.out.println("scope: " + scope.toString());
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
-
       MethodReference mr = StringStuff.makeMethodReference(methodSig);
 
       IMethod m = cha.resolveMethod(mr);
@@ -223,11 +205,49 @@ public class CDGTest {
     }
   }
 
-  public static ISSABasicBlock getBasicBlockByLine(ControlDependenceGraph<ISSABasicBlock> cdg, int line) {
-    Iterator<ISSABasicBlock> iter = cdg.iterator();
-    while(iter.hasNext()) {
-      ISSABasicBlock n = iter.next();
-      if (n.getFirstInstructionIndex() <= line && line <= n.getLastInstructionIndex()) {
+  public static void runWithClassPathFromFile(String cp, String filename) {
+    System.out.println("###################################\nrun with class name from file");
+    String[] file_analysis = filename.split(":");
+    String file = file_analysis[0];
+    int line = Integer.parseInt(file_analysis[1]);
+    System.out.println("cp: " + cp);
+    System.out.println("file: " + file);
+    try {
+      String filePath = cp + File.separatorChar + file;
+      AnalysisScope scope =
+              AnalysisScopeReader.makeJavaBinaryAnalysisScope(
+                      cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      ClassHierarchy cha = ClassHierarchyFactory.make(scope);
+      String target = StringStuff.slashToDot(file);
+      target = target.substring(0, target.lastIndexOf('.'));
+      System.out.println("target: " +  target);
+      for (IClass cl: cha) {
+        for (IMethod im: cl.getAllMethods()) {
+          String pattern = im.getSignature().split("\\(")[0];
+          if(target.equals(pattern.substring(0, pattern.lastIndexOf('.')))) {
+            if (im.getMinLineNumber() <= line && line <= im.getMaxLineNumber()) {
+              System.out.println(im.getMinLineNumber() + " to " + im.getMaxLineNumber() + " : " + im.getSignature());
+              inFileBasicBlockDistances(cp, file, line, im);
+              return;
+            }
+          }
+        }
+      }
+    } catch (WalaException | IOException e) {
+      e.printStackTrace();
+      return;
+    }
+  }
+
+  public static ISSABasicBlock getBasicBlockByLine(IR ir, ControlDependenceGraph<ISSABasicBlock> cdg, int line) throws InvalidClassFileException {
+    SSACFG cfg = ir.getControlFlowGraph();
+    IMethod method = ir.getMethod();
+    System.out.println("m: " + method.getMinLineNumber() + " to " + method.getMaxLineNumber());
+    for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
+      ISSABasicBlock n = cdg.getNode(i);
+      if(n.getFirstInstructionIndex() < 0) continue;
+      System.out.println(i + " " + method.getSourcePosition(n.getFirstInstructionIndex()).getLastLine());
+      if (method.getLineNumber(n.getFirstInstructionIndex()) <= line && line <= method.getLineNumber((n.getLastInstructionIndex()))) {
         return n;
       }
     }
@@ -263,6 +283,60 @@ public class CDGTest {
     return result;
   }
 
+  public static void inFileBasicBlockDistances(String cp, String filename, int line, IMethod m) throws IOException {
+    AnalysisOptions options = new AnalysisOptions();
+    options.getSSAOptions().setPiNodePolicy(SSAOptions.getAllBuiltInPiNodes());
+    IAnalysisCacheView cache = new AnalysisCacheImpl(options.getSSAOptions());
+    IR ir = cache.getIR(m, Everywhere.EVERYWHERE);
+
+    if (ir == null) {
+      Assertions.UNREACHABLE("Null IR for " + m);
+    }
+    System.err.println(ir.toString());
+    ControlDependenceGraph<ISSABasicBlock> cdg =
+            new ControlDependenceGraph<>(ir.getControlFlowGraph());
+
+    ISSABasicBlock target = null;
+    try {
+      target = getBasicBlockByLine(ir, cdg, line);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    ArrayList<Integer> result = distancesToNode(cdg, target);
+
+    Properties wp = null;
+    try {
+      wp = WalaProperties.loadProperties();
+      wp.putAll(WalaExamplesProperties.loadProperties());
+    } catch (WalaException e) {
+      e.printStackTrace();
+      Assertions.UNREACHABLE();
+    }
+    String csvFile =
+            wp.getProperty(WalaProperties.OUTPUT_DIR)
+                    + File.separatorChar
+                    + "output.csv";
+    FileWriter fw = new FileWriter(csvFile);
+    fw.append("File,Line,dist\n");
+    for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
+      if(result.get(i) < 0) {
+        System.out.println(i + " to node " + target.getNumber() + " distance: UNREACHABLE");
+      } else {
+        System.out.println(
+                i + " to node " + target.getNumber() + " distance: " + result.get(i));
+      }
+      ISSABasicBlock n = cdg.getNode(i);
+      try {
+        for(int j = m.getLineNumber(n.getFirstInstructionIndex()); j <= m.getLineNumber(n.getLastInstructionIndex()); j++) {
+          fw.append(filename + "," + j + "," + result.get(i) + "\n");
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    fw.close();
+  }
+  /*
   public static void inFileBasicBlockDistances(String cp, String methodSig, int line) throws IOException {
     try {
       AnalysisScope scope =
@@ -289,7 +363,7 @@ public class CDGTest {
       ControlDependenceGraph<ISSABasicBlock> cdg =
           new ControlDependenceGraph<>(ir.getControlFlowGraph());
 
-      ISSABasicBlock target = getBasicBlockByLine(cdg, line);
+      ISSABasicBlock target = null;//getBasicBlockByLine(ir, cdg, line);
       ArrayList<Integer> result = distancesToNode(cdg, target);
 
       Properties wp = null;
@@ -327,7 +401,7 @@ public class CDGTest {
       e.printStackTrace();
     }
   }
-
+  */
   /**
    * Validate that the command-line arguments obey the expected usage.
    *

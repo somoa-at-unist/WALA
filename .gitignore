@@ -15,4 +15,4 @@ build/
 out
 com.ibm.wala.core/out/*
 com.ibm.wala.core/launchers/*
-
+**/*.iml
