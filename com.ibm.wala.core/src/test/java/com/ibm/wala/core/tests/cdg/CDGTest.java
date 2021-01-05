@@ -246,8 +246,7 @@ public class CDGTest {
     for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
       ISSABasicBlock n = cdg.getNode(i);
       if(n.getFirstInstructionIndex() < 0) continue;
-      System.out.println(i + " " + method.getSourcePosition(n.getFirstInstructionIndex()).getLastLine());
-      if (method.getLineNumber(n.getFirstInstructionIndex()) <= line && line <= method.getLineNumber((n.getLastInstructionIndex()))) {
+      if (ir.getBCIndex(n.getFirstInstructionIndex()) <= line && line <= ir.getBCIndex(n.getFirstInstructionIndex())) {
         return n;
       }
     }
@@ -292,7 +291,6 @@ public class CDGTest {
     if (ir == null) {
       Assertions.UNREACHABLE("Null IR for " + m);
     }
-    System.err.println(ir.toString());
     ControlDependenceGraph<ISSABasicBlock> cdg =
             new ControlDependenceGraph<>(ir.getControlFlowGraph());
 
@@ -327,6 +325,7 @@ public class CDGTest {
       }
       ISSABasicBlock n = cdg.getNode(i);
       try {
+        if(n.getFirstInstructionIndex() < 0) continue;
         for(int j = m.getLineNumber(n.getFirstInstructionIndex()); j <= m.getLineNumber(n.getLastInstructionIndex()); j++) {
           fw.append(filename + "," + j + "," + result.get(i) + "\n");
         }

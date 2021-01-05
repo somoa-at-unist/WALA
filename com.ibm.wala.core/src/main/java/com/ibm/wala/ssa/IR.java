@@ -123,6 +123,9 @@ public abstract class IR implements IRView {
    */
   protected abstract String instructionPosition(int instructionIndex);
 
+  public int getBCIndex(int instructionIndex) {
+    return Integer.parseInt(instructionPosition(instructionIndex).replaceAll("[^0-9]", ""));
+  }
   @Override
   public String toString() {
     Collection<? extends SSAIndirectionData.Name> names = null;
