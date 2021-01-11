@@ -33,8 +33,9 @@ public class BasicBlockDistance {
   public static void main(String[] args) {
     System.out.println("main!!!");
   }
-  public BasicBlockDistance() {
-    System.out.println("BasicBlock distance");
+  private String outDir;
+  public BasicBlockDistance(String outDir) {
+    this.outDir = outDir;
   }
 
   public void test_print() {
@@ -42,11 +43,10 @@ public class BasicBlockDistance {
         "org/joda/time/Partial.java:459");
   }
   public void runWithClassPathFromFile(String cp, String filename) {
-    System.out.println("###################################\nrun with class name from file");
     String[] file_analysis = filename.split(":");
     String file = file_analysis[0];
     int line = Integer.parseInt(file_analysis[1]);
-    System.out.println("cp: " + cp);
+    System.out.println("class path: " + cp);
     System.out.println("file: " + file);
     try {
       String filePath = cp + File.separatorChar + file;
@@ -134,6 +134,7 @@ public class BasicBlockDistance {
     }
     ArrayList<Integer> result = distancesToNode(cdg, target);
     System.out.println("target basic block: " + target.toString());
+    /*
     Properties wp = null;
     try {
       wp = WalaProperties.loadProperties();
@@ -142,19 +143,16 @@ public class BasicBlockDistance {
       e.printStackTrace();
       Assertions.UNREACHABLE();
     }
-    String csvFile =
+    */
+    String csvFile = this.outDir + "output.csv";
+    /*
         wp.getProperty(WalaProperties.OUTPUT_DIR)
             + File.separatorChar
             + "output.csv";
+     */
     FileWriter fw = new FileWriter(csvFile);
     fw.append("File,Line,dist\n");
     for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
-      if(result.get(i) < 0 || result.get(i) == Integer.MAX_VALUE) {
-        System.out.println(i + " to node " + target.getNumber() + " distance: UNREACHABLE");
-      } else {
-        System.out.println(
-            i + " to node " + target.getNumber() + " distance: " + result.get(i));
-      }
       ISSABasicBlock n = cdg.getNode(i);
       try {
         if(n.getFirstInstructionIndex() < 0) continue;

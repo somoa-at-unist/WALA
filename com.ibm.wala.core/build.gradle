@@ -13,8 +13,24 @@ eclipse {
 	}
 }
 
+
+
 sourceSets {
 	testSubjects
+}
+apply plugin: 'java'
+jar {
+	manifest {
+		attributes 'Main-Class': 'com.ibm.wala.core.cfg.cdg.BasicBlockDistance'
+	}
+	archiveClassifier = "all"
+	from {
+		configurations.compile.collect {
+			it.isDirectory() ? it : zipTree(it)
+		}
+		configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+	}
+	archiveName "mywala.jar"
 }
 
 final Provider<JavaCompile> compileTestSubjectsJava = tasks.named('compileTestSubjectsJava', JavaCompile)
