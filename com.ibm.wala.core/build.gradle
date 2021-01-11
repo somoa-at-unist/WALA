@@ -30,7 +30,7 @@ jar {
 		}
 		configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
 	}
-	archiveName "mywala.jar"
+	archiveName "com.ibm.wala.jar"
 }
 
 final Provider<JavaCompile> compileTestSubjectsJava = tasks.named('compileTestSubjectsJava', JavaCompile)
