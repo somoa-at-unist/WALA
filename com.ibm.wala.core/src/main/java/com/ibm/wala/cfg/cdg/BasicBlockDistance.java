@@ -33,9 +33,9 @@ public class BasicBlockDistance {
   public static void main(String[] args) {
     System.out.println("main!!!");
   }
-  private String outDir;
-  public BasicBlockDistance(String outDir) {
-    this.outDir = outDir;
+  private String outFile;
+  public BasicBlockDistance(String outFile) {
+    this.outFile = outFile;
   }
 
   public void test_print() {
@@ -144,7 +144,7 @@ public class BasicBlockDistance {
       Assertions.UNREACHABLE();
     }
     */
-    String csvFile = this.outDir + "output.csv";
+    String csvFile = this.outFile;
     /*
         wp.getProperty(WalaProperties.OUTPUT_DIR)
             + File.separatorChar
