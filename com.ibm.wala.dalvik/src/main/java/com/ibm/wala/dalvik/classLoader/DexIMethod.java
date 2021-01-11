@@ -410,6 +410,11 @@ public class DexIMethod implements IBytecodeMethod<Instruction> {
     //      return false;
   }
 
+  @Override
+  public int getNumberOfDefaultParameters() {
+    return 0;
+  }
+
   /*
    * (non-Javadoc)
    * @see com.ibm.wala.classLoader.IMethod#isAbstract()
@@ -580,6 +585,16 @@ public class DexIMethod implements IBytecodeMethod<Instruction> {
     }
     Entry<Integer, Integer> fe = sourceLines.floorEntry(bcIndex);
     return fe != null ? fe.getValue() : -1;
+  }
+
+  @Override
+  public int getMinLineNumber() {
+    return getLineNumber(0);
+  }
+
+  @Override
+  public int getMaxLineNumber() {
+    return getLineNumber(instructions().size() - 1);
   }
 
   /*

@@ -256,7 +256,7 @@ public class CDGTest {
   public static ArrayList<Integer> distancesToNode(ControlDependenceGraph<ISSABasicBlock> cdg, ISSABasicBlock target) {
     ArrayList<Integer> result = new ArrayList<>();
     for(int i = 0; i < cdg.getNumberOfNodes(); i++){
-      result.add(-1);
+      result.add(Integer.MAX_VALUE);
     }
     int distance = 0;
     ArrayList<ISSABasicBlock> Q = new ArrayList<>();
@@ -313,7 +313,7 @@ public class CDGTest {
     FileWriter fw = new FileWriter(csvFile);
     fw.append("File,Line,dist\n");
     for(int i = 0; i < cdg.getNumberOfNodes(); i++) {
-      if(result.get(i) < 0) {
+      if(result.get(i) < 0 || result.get(i) == Integer.MAX_VALUE) {
         System.out.println(i + " to node " + target.getNumber() + " distance: UNREACHABLE");
       } else {
         System.out.println(
