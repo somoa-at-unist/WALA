@@ -32,6 +32,10 @@ import java.util.Properties;
 public class BasicBlockDistance {
   public static void main(String[] args) {
     System.out.println("main!!!");
+    String cp =
+        "/home/plase1/Docker/poracle/modules/JQF/src/test/resources/patches/Patch180/Time4p/target/test-classes:/home/plase1/Docker/poracle/modules/JQF/src/test/resources/patches/Patch180/Time4p/target/classes:/home/plase1/Docker/poracle/modules/JQF/aspect/tracing.jar";
+    String filename = "org/joda/time/Partial.java:459";
+    (new BasicBlockDistance("/home/plase1/Docker/poracle/modules/JQF/src/test/resources/fuzz-results/output.csv")).runWithClassPathFromFile(cp, filename);
   }
   private String outFile;
   public BasicBlockDistance(String outFile) {
@@ -49,10 +53,21 @@ public class BasicBlockDistance {
     //System.out.println("class path: " + cp);
     //System.out.println("file: " + file);
     try {
-      String filePath = cp + File.separatorChar + file;
-      AnalysisScope scope =
-          AnalysisScopeReader.makeJavaBinaryAnalysisScope(
-              cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(
+          cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      /*
+      AnalysisScope scope = AnalysisScopeReader.makePrimordialScope((new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      for(String s: cp.split(":")) {
+        System.out.println("s: " + s);
+        try {
+          AnalysisScopeReader.addClassPathToScope(
+              s, scope, scope.getLoader(AnalysisScope.APPLICATION));
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+      System.out.println(scope.toString());
+      */
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
       String target = StringStuff.slashToDot(file);
       target = target.substring(0, target.lastIndexOf('.'));
