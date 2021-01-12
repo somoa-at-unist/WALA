@@ -1,0 +1,2 @@
+export WALA_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+export CLASSPATH=$WALA_DIR/com.ibm.wala.core/build/libs/com.ibm.wala.jar:$CLASSPATH
