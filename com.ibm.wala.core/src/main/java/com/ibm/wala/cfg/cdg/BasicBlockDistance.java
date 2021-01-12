@@ -46,8 +46,8 @@ public class BasicBlockDistance {
     String[] file_analysis = filename.split(":");
     String file = file_analysis[0];
     int line = Integer.parseInt(file_analysis[1]);
-    System.out.println("class path: " + cp);
-    System.out.println("file: " + file);
+    //System.out.println("class path: " + cp);
+    //System.out.println("file: " + file);
     try {
       String filePath = cp + File.separatorChar + file;
       AnalysisScope scope =
@@ -61,7 +61,7 @@ public class BasicBlockDistance {
           String pattern = im.getSignature().split("\\(")[0];
           if(target.equals(pattern.substring(0, pattern.lastIndexOf('.')))) {
             if (im.getMinLineNumber() <= line && line <= im.getMaxLineNumber()) {
-              System.out.println("line " + im.getMinLineNumber() + " to " + im.getMaxLineNumber() + " : " + im.getSignature());
+              //System.out.println("line " + im.getMinLineNumber() + " to " + im.getMaxLineNumber() + " : " + im.getSignature());
               inFileBasicBlockDistances(cp, file, line, im);
               return;
             }
@@ -133,7 +133,7 @@ public class BasicBlockDistance {
       e.printStackTrace();
     }
     ArrayList<Integer> result = distancesToNode(cdg, target);
-    System.out.println("target basic block: " + target.toString());
+    //System.out.println("target basic block: " + target.toString());
     /*
     Properties wp = null;
     try {
