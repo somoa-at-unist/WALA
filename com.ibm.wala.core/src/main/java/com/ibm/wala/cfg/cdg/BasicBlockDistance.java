@@ -53,20 +53,38 @@ public class BasicBlockDistance {
     //System.out.println("class path: " + cp);
     //System.out.println("file: " + file);
     try {
-      AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(
-          cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+
+      AnalysisScope scope =
+          AnalysisScopeReader.makeJavaBinaryAnalysisScope(
+              cp, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
       /*
-      AnalysisScope scope = AnalysisScopeReader.makePrimordialScope((new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      AnalysisScope scope;
+      File exclusionFile = (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS);
+      if (exclusionFile.exists()) {
+        scope = AnalysisScopeReader.makePrimordialScope(
+            (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+      } else {
+        System.out.println("exclusionFile does not exists");
+        scope = AnalysisScope.createJavaAnalysisScope();
+        //AnalysisScopeReader.addClassPathToScope(cp, scope, scope.getLoader(AnalysisScope.APPLICATION));
+      }
+
+      //AnalysisScope scope = AnalysisScopeReader.makePrimordialScope((new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
+
       for(String s: cp.split(":")) {
-        System.out.println("s: " + s);
-        try {
-          AnalysisScopeReader.addClassPathToScope(
-              s, scope, scope.getLoader(AnalysisScope.APPLICATION));
-        } catch (Exception e) {
-          e.printStackTrace();
+        if((new File(s)).exists()) {
+          //System.out.println("s exists!: " + s);
+          try {
+            AnalysisScopeReader.addClassPathToScope(
+                s, scope, scope.getLoader(AnalysisScope.APPLICATION));
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        } else {
+          System.out.println("classpath does not exists: " + s);
         }
       }
-      System.out.println(scope.toString());
+      // System.out.println(scope.toString());
       */
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
       String target = StringStuff.slashToDot(file);
@@ -85,7 +103,11 @@ public class BasicBlockDistance {
       }
     } catch (Exception e) {
       e.printStackTrace();
-      return;
+    }
+    try {
+      FileWriter fw = new FileWriter(this.outFile);
+      fw.append("File,Line,dist\n");
+    } catch (Exception e) {
     }
   }
 
