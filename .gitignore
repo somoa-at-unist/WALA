@@ -16,3 +16,9 @@ out
 com.ibm.wala.core/out/*
 com.ibm.wala.core/launchers/*
 **/*.iml
+target/**
+targets/**
+com.ibm.wala.cast.java.test.data/target/**
+com.ibm.wala.core/resources/test/JLex/**
+com.ibm.wala.core/resources/test/META-INF/**
+com.ibm.wala.ide_feature/target/**
